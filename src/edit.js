@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const { spawnSync } = require('child_process');
 
 function charOffsetOfLine(content, lineNum) {
@@ -29,10 +30,34 @@ function deleteComment(content, group) {
   return before + after;
 }
 
+function buildEditorCommand(filePath, line) {
+  const editorEnv = process.env.EDITOR || process.env.VISUAL || 'vi';
+  const parts = editorEnv.match(/(?:[^\s"]+|"[^"]*")+/g) || ['vi'];
+  const cmd = parts[0].replace(/^"|"$/g, '');
+  const extraArgs = parts.slice(1).map((p) => p.replace(/^"|"$/g, ''));
+  const base = path.basename(cmd).toLowerCase();
+
+  if (base.startsWith('code')) {
+    return { cmd, args: [...extraArgs, '--goto', `${filePath}:${line}`] };
+  }
+  if (base.startsWith('subl') || base.startsWith('sublime')) {
+    return { cmd, args: [...extraArgs, `${filePath}:${line}`] };
+  }
+  return { cmd, args: [...extraArgs, `+${line}`, filePath] };
+}
+
 function openEditor(filePath, line) {
-  const editor = process.env.EDITOR || process.env.VISUAL || 'vi';
-  const result = spawnSync(editor, [`+${line}`, filePath], { stdio: 'inherit' });
-  return result.status === 0 || result.status === null;
+  const { cmd, args } = buildEditorCommand(filePath, line);
+  const result = spawnSync(cmd, args, { stdio: 'inherit' });
+  if (result.error) {
+    console.error(`Couldn't launch editor "${cmd}": ${result.error.message}`);
+    return false;
+  }
+  if (typeof result.status === 'number' && result.status !== 0) {
+    console.error(`Editor "${cmd}" exited with status ${result.status}.`);
+    return false;
+  }
+  return true;
 }
 
 function writeFile(filePath, content) {

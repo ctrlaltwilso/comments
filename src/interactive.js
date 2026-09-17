@@ -21,8 +21,14 @@ function printContext(lines, group) {
   }
 }
 
-function ask(rl, question) {
-  return new Promise((resolve) => rl.question(question, resolve));
+function ask(question) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
 }
 
 async function runInteractive(results, repoRoot) {
@@ -37,7 +43,6 @@ async function runInteractive(results, repoRoot) {
     byFile.get(r.file).push(r);
   }
 
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   const summary = { kept: 0, edited: 0, deleted: 0 };
   let quit = false;
 
@@ -52,7 +57,7 @@ async function runInteractive(results, repoRoot) {
       console.log(`\n${paint(c.bold, file)}${group.flagged ? '  ' + paint(c.yellow, '⚑ ' + group.reasons.join('; ')) : ''}`);
       printContext(lines, group);
 
-      const answer = (await ask(rl, paint(c.cyan, '  [k]eep / [d]elete / [e]dit / [s]kip file / [q]uit  (k) ')))
+      const answer = (await ask(paint(c.cyan, '  [k]eep / [d]elete / [e]dit / [s]kip file / [q]uit  (k) ')))
         .trim()
         .toLowerCase() || 'k';
 
@@ -74,7 +79,6 @@ async function runInteractive(results, repoRoot) {
     }
   }
 
-  rl.close();
   if (quit) console.log('\nStopped early.');
   console.log(
     `\n${summary.deleted} deleted, ${summary.edited} edited, ${summary.kept} kept.`
