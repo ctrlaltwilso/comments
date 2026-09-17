@@ -108,6 +108,7 @@ function groupComments(raw, lang) {
         lineCount: entry.endLine - entry.startLine + 1,
         isTrailing: entry.isTrailing,
         plainText: stripMarkers(entry, lang),
+        raw: entry.raw,
       });
       i++;
     }

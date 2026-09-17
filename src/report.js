@@ -41,6 +41,9 @@ function printReport(results, { json, title } = {}) {
       const range = r.startLine === r.endLine ? `${r.startLine}` : `${r.startLine}-${r.endLine}`;
       const preview = truncate(r.plainText.replace(/\s+/g, ' ').trim(), 100);
       console.log(`  ${marker} ${paint(c.gray, range.padEnd(9))} ${preview}`);
+      if (r.nextLineText) {
+        console.log(`      ${paint(c.dim, `→ ${truncate(r.nextLineText.trim(), 90)}`)}`);
+      }
       if (r.flagged && r.reasons.length) {
         console.log(`      ${paint(c.dim + c.yellow, `└─ ${r.reasons.join('; ')}`)}`);
       }
@@ -52,4 +55,4 @@ function printReport(results, { json, title } = {}) {
   console.log(`\n${summary}`);
 }
 
-module.exports = { printReport };
+module.exports = { printReport, paint, truncate, colors: c };
