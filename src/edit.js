@@ -46,9 +46,27 @@ function buildEditorCommand(filePath, line) {
   return { cmd, args: [...extraArgs, `+${line}`, filePath] };
 }
 
+function shQuote(s) {
+  return `'${String(s).replace(/'/g, `'\\''`)}'`;
+}
+
+function runViaShell(cmd, args) {
+  const shell = process.env.SHELL || '/bin/sh';
+  // cmd stays unquoted so shell aliases/functions named after it still expand;
+  // only the arguments (file paths) are quoted.
+  const commandString = `${cmd} ${args.map(shQuote).join(' ')}`;
+  return spawnSync(shell, ['-ic', commandString], { stdio: 'inherit' });
+}
+
 function openEditor(filePath, line) {
   const { cmd, args } = buildEditorCommand(filePath, line);
-  const result = spawnSync(cmd, args, { stdio: 'inherit' });
+
+  let result = spawnSync(cmd, args, { stdio: 'inherit' });
+
+  if (result.error) {
+    result = runViaShell(cmd, args);
+  }
+
   if (result.error) {
     console.error(`Couldn't launch editor "${cmd}": ${result.error.message}`);
     return false;
